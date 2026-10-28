@@ -482,18 +482,25 @@ export const DocumentPreview: React.FC<Props> = ({ data, onBackToEdit, onGoToSec
               <span className="font-bold text-slate-700 block mb-1">Dictamen:</span>
               <div className="flex flex-wrap gap-x-4 gap-y-1">
                 {[
-                  'Procede únicamente el paso peatonal',
+                  'Procede el paso peatonal',
                   'Procede paso peatonal con reductores de velocidad',
+                  'Procede solo reductores de velocidad con señal vertical',
                   'Procede con plataforma elevada',
                   'Procede con semaforización',
                   'Procede con isla de refugio',
-                  'No procede',
                   'Procede con señalética',
-                ].map(opc => (
-                  <span key={opc} className="font-mono text-[11px]">
-                    [{s10.dictamenOpciones.includes(opc) ? 'X' : '  '}] {opc}
-                  </span>
-                ))}
+                  'No procede',
+                ].map(opc => {
+                  const isChecked = Boolean(
+                    s10.dictamenOpciones?.includes(opc) ||
+                    (opc === 'Procede el paso peatonal' && s10.dictamenOpciones?.includes('Procede únicamente el paso peatonal'))
+                  );
+                  return (
+                    <span key={opc} className="font-mono text-[11px]">
+                      [{isChecked ? 'X' : '  '}] {opc}
+                    </span>
+                  );
+                })}
               </div>
             </div>
             <div className="pt-2 border-t border-slate-200">

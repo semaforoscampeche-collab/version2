@@ -518,17 +518,21 @@ export async function generateInspectionPDF(rawData: InspectionData): Promise<vo
   currentY = addSectionTitle('X. PROPUESTA TÉCNICA Y DICTAMEN DE INTERVENCIÓN', currentY);
 
   const dictamenes = [
-    'Procede únicamente el paso peatonal',
+    'Procede el paso peatonal',
     'Procede paso peatonal con reductores de velocidad',
+    'Procede solo reductores de velocidad con señal vertical',
     'Procede con plataforma elevada',
     'Procede con semaforización',
     'Procede con isla de refugio',
-    'No procede',
     'Procede con señalética',
+    'No procede',
   ];
 
   const dictBoxes = dictamenes.map(d => {
-    const isChecked = data.seccion10.dictamenOpciones?.includes(d);
+    const isChecked = Boolean(
+      data.seccion10.dictamenOpciones?.includes(d) ||
+      (d === 'Procede el paso peatonal' && data.seccion10.dictamenOpciones?.includes('Procede únicamente el paso peatonal'))
+    );
     return `[ ${isChecked ? 'X' : '  '} ] ${d}`;
   });
 

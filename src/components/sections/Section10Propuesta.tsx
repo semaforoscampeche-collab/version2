@@ -7,24 +7,39 @@ interface Props {
   onChange: (updater: (prev: InspectionData) => InspectionData) => void;
 }
 
-const OPCIONES_DICTAMEN = [
-  'Procede únicamente el paso peatonal',
+export const OPCIONES_DICTAMEN = [
+  'Procede el paso peatonal',
   'Procede paso peatonal con reductores de velocidad',
+  'Procede solo reductores de velocidad con señal vertical',
   'Procede con plataforma elevada',
   'Procede con semaforización',
   'Procede con isla de refugio',
-  'No procede',
   'Procede con señalética',
+  'No procede',
 ];
+
+export const isDictamenSelected = (opciones: string[] | undefined, target: string): boolean => {
+  if (!opciones) return false;
+  if (opciones.includes(target)) return true;
+  if (target === 'Procede el paso peatonal' && opciones.includes('Procede únicamente el paso peatonal')) return true;
+  return false;
+};
 
 export const Section10Propuesta: React.FC<Props> = ({ data, onChange }) => {
   const s10 = data.seccion10;
 
   const toggleDictamen = (opcion: string) => {
-    const exists = s10.dictamenOpciones.includes(opcion);
-    const updated = exists
-      ? s10.dictamenOpciones.filter(o => o !== opcion)
-      : [...s10.dictamenOpciones, opcion];
+    const currentlyActive = isDictamenSelected(s10.dictamenOpciones, opcion);
+    let updated: string[];
+
+    if (currentlyActive) {
+      updated = s10.dictamenOpciones.filter(
+        o => o !== opcion && !(opcion === 'Procede el paso peatonal' && o === 'Procede únicamente el paso peatonal')
+      );
+    } else {
+      // If choosing 'No procede', optionally allow it or keep multi-select
+      updated = [...s10.dictamenOpciones, opcion];
+    }
 
     onChange(prev => ({
       ...prev,
@@ -70,7 +85,7 @@ export const Section10Propuesta: React.FC<Props> = ({ data, onChange }) => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           {OPCIONES_DICTAMEN.map((opc) => {
-            const isChecked = s10.dictamenOpciones.includes(opc);
+            const isChecked = isDictamenSelected(s10.dictamenOpciones, opc);
             const isNoProcede = opc === 'No procede';
             return (
               <button
@@ -109,7 +124,31 @@ export const Section10Propuesta: React.FC<Props> = ({ data, onChange }) => {
           placeholder="Desarrolle ampliamente los fundamentos técnicos de la propuesta: especificaciones de materiales, dimensiones del paso peatonal (ancho y separación de franjas), tipo de reductor de velocidad (trapecial, trapezoidal, boyas), distancia de anticipación de señales verticales SP-33 y restrictivas SR-9, adecuaciones a banquetas y balizamiento de línea de alto..."
           className="w-full px-3.5 py-3 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#691C32]/30 focus:border-[#691C32] text-slate-900 leading-relaxed font-normal"
         />
-        <span className="text-[11px] text-slate-400 mt-1 block">
+        <div className="flex flex-wrap items-center gap-2 mt-2">
+          <span className="text-[11px] font-semibold text-slate-500">Plantillas técnicas rápidas:</span>
+          <button
+            type="button"
+            onClick={() => handleTextoChange('Con base en la inspección de campo y la velocidad vehicular registrada, se dictamina PROCEDENTE ÚNICAMENTE la instalación de reductores de velocidad acompañados de señalamiento vertical preventivo (SP) y restrictivo de velocidad (SR a 30 km/h) a 25 metros de aproximación en ambos sentidos de circulación.')}
+            className="text-[11px] px-2.5 py-1 bg-slate-100 hover:bg-[#691C32]/10 hover:text-[#691C32] text-slate-700 rounded border border-slate-200 transition-colors cursor-pointer"
+          >
+            + Solo reductores con señal vertical
+          </button>
+          <button
+            type="button"
+            onClick={() => handleTextoChange('Con base en los aforos peatonales y vehiculares, se dictamina PROCEDENTE la implementación de un paso peatonal a nivel de calzada tipo cebra (franjas de 0.40 m) complementado con reductores de velocidad trapeciales a 20 metros de aproximación y señalamiento vertical reglamentario.')}
+            className="text-[11px] px-2.5 py-1 bg-slate-100 hover:bg-[#691C32]/10 hover:text-[#691C32] text-slate-700 rounded border border-slate-200 transition-colors cursor-pointer"
+          >
+            + Paso peatonal c/ reductores
+          </button>
+          <button
+            type="button"
+            onClick={() => handleTextoChange('Tras la inspección técnica ocular y el aforo vial realizado, se concluye que NO PROCEDE la solicitud debido a que las características geométricas y el flujo vehicular no cumplen los umbrales mínimos establecidos por la normativa técnica de vialidad.')}
+            className="text-[11px] px-2.5 py-1 bg-slate-100 hover:bg-red-50 hover:text-red-700 text-slate-700 rounded border border-slate-200 transition-colors cursor-pointer"
+          >
+            + No procede
+          </button>
+        </div>
+        <span className="text-[11px] text-slate-400 mt-1.5 block">
           Esta memoria técnica se imprimirá textualmente en el cuerpo resolutivo del dictamen.
         </span>
       </div>
