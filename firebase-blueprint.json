@@ -1,0 +1,38 @@
+{
+  "entities": {
+    "Inspection": {
+      "title": "Inspection",
+      "description": "Anexo Técnico de Inspección y Levantamiento de Campo vial",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "folioInterno": { "type": "string", "maxLength": 128 },
+        "status": { "type": "string", "enum": ["borrador", "finalizado"] },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 },
+        "institutionalInfo": { "type": "object" },
+        "seccion1": { "type": "object" },
+        "seccion2": { "type": "object" },
+        "seccion3": { "type": "object" },
+        "seccion4": { "type": "object" },
+        "seccion5": { "type": "object" },
+        "seccion6": { "type": "object" },
+        "seccion7": { "type": "object" },
+        "seccion8": { "type": "object" },
+        "seccion9": { "type": "object" },
+        "seccion10": { "type": "object" },
+        "seccion11": { "type": "object" },
+        "seccion12": { "type": "object" },
+        "observaciones": { "type": "object" },
+        "responsable": { "type": "object" }
+      },
+      "required": ["id", "status"]
+    }
+  },
+  "firestore": {
+    "/inspecciones/{inspectionId}": {
+      "schema": "Inspection",
+      "description": "Colección centralizada de anexos técnicos e inspecciones viales compartidas en red"
+    }
+  }
+}

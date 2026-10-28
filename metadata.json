@@ -1,0 +1,10 @@
+{
+  "name": "Anexo Técnico de Inspección y Levantamiento de Campo",
+  "description": "Sistema institucional para la captura, evaluación técnica vial, registro fotográfico y generación en PDF del Anexo Técnico de Inspección y Levantamiento de Campo.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

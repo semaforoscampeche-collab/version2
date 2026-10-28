@@ -1,0 +1,16 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Reglas para los Anexos Técnicos de Inspección y Levantamiento compartidos en red
+    match /inspecciones/{inspectionId} {
+      allow read: if true;
+      allow create, update: if inspectionId is string && inspectionId.size() <= 128;
+      allow delete: if inspectionId is string && inspectionId.size() <= 128;
+    }
+  }
+}
