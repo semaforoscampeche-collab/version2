@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { InspectionData } from '../../types/inspection';
-import { MapPin, Upload, Image as ImageIcon, Trash2, Calendar, Clock, FileText, Compass } from 'lucide-react';
+import { MapPin, Upload, Image as ImageIcon, Trash2, Calendar, Clock, FileText, Compass, Loader2 } from 'lucide-react';
 import { MapModal } from '../MapModal';
+import { uploadPhysicalImage } from '../../services/storage';
 
 interface Props {
   data: InspectionData;
@@ -10,6 +11,7 @@ interface Props {
 
 export const Section1General: React.FC<Props> = ({ data, onChange }) => {
   const [mapOpen, setMapOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const s1 = data.seccion1;
 
   const handleFieldChange = (field: keyof typeof s1, value: any) => {
@@ -24,20 +26,25 @@ export const Section1General: React.FC<Props> = ({ data, onChange }) => {
     }));
   };
 
-  const handleCroquisUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCroquisUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert('La imagen excede el límite de 5 MB. Por favor elija un archivo más comprimido.');
+    if (file.size > 15 * 1024 * 1024) {
+      alert('La imagen excede el límite de 15 MB. Por favor elija un archivo más comprimido.');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      handleFieldChange('croquisUbicacionImg', event.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+    setIsUploading(true);
+    try {
+      const url = await uploadPhysicalImage(file, 'croquis_ubicacion');
+      handleFieldChange('croquisUbicacionImg', url);
+    } catch (err) {
+      console.error('Error subiendo croquis:', err);
+    } finally {
+      setIsUploading(false);
+      e.target.value = '';
+    }
   };
 
   return (

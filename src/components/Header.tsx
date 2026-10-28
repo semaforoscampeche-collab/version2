@@ -9,7 +9,8 @@ import {
   CheckCircle2,
   Clock,
   Shield,
-  FileCheck
+  FileCheck,
+  Database
 } from 'lucide-react';
 
 interface Props {
@@ -20,6 +21,7 @@ interface Props {
   onTogglePreview: () => void;
   onGeneratePdf: () => void;
   onToggleStatus: () => void;
+  onOpenDatabaseModal?: () => void;
   saving?: boolean;
 }
 
@@ -31,6 +33,7 @@ export const Header: React.FC<Props> = ({
   onTogglePreview,
   onGeneratePdf,
   onToggleStatus,
+  onOpenDatabaseModal,
   saving = false,
 }) => {
   const folio = data?.seccion1.folioInterno || data?.folioInterno || 'NUEVA INSPECCIÓN';
@@ -46,8 +49,21 @@ export const Header: React.FC<Props> = ({
             {data?.institutionalInfo?.dependencia || 'GOBIERNO DEL ESTADO DE CAMPECHE'} • {data?.institutionalInfo?.direccionUnidad || 'DIRECCIÓN DE TRANSITO Y VIALIDAD'}
           </span>
         </div>
-        <div className="hidden sm:block text-[10px] text-amber-200 font-medium">
-          Encargado Balizamiento y Semaforizacion • Tel: 9818119110 ext 80050
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:block text-[10px] text-amber-200 font-medium">
+            Encargado Balizamiento y Semaforizacion • Tel: 9818119110 ext 80050
+          </div>
+          {onOpenDatabaseModal && (
+            <button
+              type="button"
+              onClick={onOpenDatabaseModal}
+              className="flex items-center gap-1.5 text-amber-200 cursor-pointer bg-black/25 hover:bg-black/40 px-2 py-0.5 rounded text-[10px] font-semibold border border-amber-300/30 transition-colors"
+              title="Ver estado de base de datos MySQL y almacenamiento local"
+            >
+              <Database className="w-3 h-3 text-amber-300" />
+              <span>Base de Datos / Red</span>
+            </button>
+          )}
         </div>
       </div>
 

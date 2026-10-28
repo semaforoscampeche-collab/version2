@@ -23,7 +23,48 @@ function getTableFinalY(docInstance: any, defaultY: number): number {
     : defaultY;
 }
 
-export async function generateInspectionPDF(data: InspectionData): Promise<void> {
+async function resolveImageForPdf(src?: string): Promise<string> {
+  if (!src) return '';
+  if (src.startsWith('data:image/')) return src;
+  try {
+    const res = await fetch(src);
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve((reader.result as string) || src);
+      reader.onerror = () => resolve(src);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return src;
+  }
+}
+
+export async function generateInspectionPDF(rawData: InspectionData): Promise<void> {
+  // Pre-cargar y convertir rutas locales (/uploads/...) a dataURL para jsPDF
+  const data: InspectionData = JSON.parse(JSON.stringify(rawData));
+  if (data.seccion1?.croquisUbicacionImg) {
+    data.seccion1.croquisUbicacionImg = await resolveImageForPdf(data.seccion1.croquisUbicacionImg);
+  }
+  if (data.responsable?.firmaUrl) {
+    data.responsable.firmaUrl = await resolveImageForPdf(data.responsable.firmaUrl);
+  }
+  if (data.seccion11?.croquisList) {
+    for (const c of data.seccion11.croquisList) {
+      if (c.url) c.url = await resolveImageForPdf(c.url);
+    }
+  }
+  if (data.seccion12?.grupos) {
+    for (const g of data.seccion12.grupos) {
+      if (g.fotoNorte?.url) g.fotoNorte.url = await resolveImageForPdf(g.fotoNorte.url);
+      if (g.fotoSur?.url) g.fotoSur.url = await resolveImageForPdf(g.fotoSur.url);
+      if (g.fotoOriente?.url) g.fotoOriente.url = await resolveImageForPdf(g.fotoOriente.url);
+      if (g.fotoPoniente?.url) g.fotoPoniente.url = await resolveImageForPdf(g.fotoPoniente.url);
+      if (g.vistaGeneral?.url) g.vistaGeneral.url = await resolveImageForPdf(g.vistaGeneral.url);
+      if (g.detalleSitio?.url) g.detalleSitio.url = await resolveImageForPdf(g.detalleSitio.url);
+    }
+  }
+
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',

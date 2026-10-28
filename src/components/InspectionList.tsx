@@ -30,6 +30,7 @@ interface Props {
   onDuplicate: (inspection: InspectionData) => void;
   onDelete: (id: string) => void;
   onRefresh: () => void;
+  onOpenDatabaseModal?: () => void;
 }
 
 export const InspectionList: React.FC<Props> = ({
@@ -40,6 +41,7 @@ export const InspectionList: React.FC<Props> = ({
   onDuplicate,
   onDelete,
   onRefresh,
+  onOpenDatabaseModal,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'todos' | InspectionStatus>('todos');
@@ -106,10 +108,17 @@ export const InspectionList: React.FC<Props> = ({
               <Building className="w-3.5 h-3.5" />
               DIRECCIÓN DE TRANSITO Y VIALIDAD • GOBIERNO DEL ESTADO DE CAMPECHE
             </div>
-            <div className="inline-flex items-center gap-1.5 bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 px-3 py-1 rounded-full text-[11px] font-bold">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              Base de Datos en Red (Firestore Sincronizada en Tiempo Real)
-            </div>
+            {onOpenDatabaseModal && (
+              <button
+                type="button"
+                onClick={onOpenDatabaseModal}
+                className="inline-flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-200 border border-emerald-400/30 px-3 py-1 rounded-full text-[11px] font-bold cursor-pointer transition-colors"
+                title="Configuración de Base de Datos MySQL y Almacenamiento Local en Disco"
+              >
+                <Database className="w-3.5 h-3.5 text-amber-300" />
+                Base de Datos MySQL / Carpeta Local
+              </button>
+            )}
           </div>
           <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
             Anexos Técnicos de Inspección y Levantamiento
@@ -132,6 +141,17 @@ export const InspectionList: React.FC<Props> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-3 shrink-0">
+          {onOpenDatabaseModal && (
+            <button
+              type="button"
+              onClick={onOpenDatabaseModal}
+              className="px-4 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer transition-all shadow-xs"
+            >
+              <Database className="w-4 h-4 text-amber-200" />
+              Base de Datos
+            </button>
+          )}
+
           <label className="px-4 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer transition-all shadow-xs">
             <Upload className="w-4 h-4 text-amber-200" />
             Importar JSON

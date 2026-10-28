@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { InspectionData } from '../../types/inspection';
-import { Camera, Plus, Trash2, Upload, Compass, Eye, Maximize2 } from 'lucide-react';
+import { Camera, Plus, Trash2, Upload, Compass, Eye, Maximize2, Loader2 } from 'lucide-react';
+import { uploadPhysicalImage } from '../../services/storage';
 
 interface Props {
   data: InspectionData;
@@ -20,6 +21,7 @@ const SLOTS_CONFIG: Array<{ key: PhotoKey; label: string; icon: any }> = [
 
 export const Section12Fotografico: React.FC<Props> = ({ data, onChange }) => {
   const grupos = data.seccion12.grupos || [];
+  const [uploadingSlot, setUploadingSlot] = useState<string | null>(null);
 
   const handleUpdateVialidad = (grupoId: string, nombre: string) => {
     onChange((prev) => ({
@@ -33,18 +35,21 @@ export const Section12Fotografico: React.FC<Props> = ({ data, onChange }) => {
     }));
   };
 
-  const handleUploadPhoto = (grupoId: string, slotKey: PhotoKey, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUploadPhoto = async (grupoId: string, slotKey: PhotoKey, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 8 * 1024 * 1024) {
-      alert('La fotografía excede 8 MB. Seleccione una imagen más ligera.');
+    if (file.size > 15 * 1024 * 1024) {
+      alert('La fotografía excede 15 MB. Seleccione una imagen más ligera.');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const url = event.target?.result as string;
+    const slotId = `${grupoId}-${slotKey}`;
+    setUploadingSlot(slotId);
+
+    try {
+      // Subida física al directorio /uploads de la computadora
+      const url = await uploadPhysicalImage(file, `foto_${slotKey}`);
       onChange((prev) => ({
         ...prev,
         seccion12: {
@@ -61,9 +66,12 @@ export const Section12Fotografico: React.FC<Props> = ({ data, onChange }) => {
           }),
         },
       }));
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
+    } catch (err) {
+      console.error('Error subiendo fotografía:', err);
+    } finally {
+      setUploadingSlot(null);
+      e.target.value = '';
+    }
   };
 
   const handleUpdateDescription = (grupoId: string, slotKey: PhotoKey, desc: string) => {

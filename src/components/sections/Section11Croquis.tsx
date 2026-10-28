@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { InspectionData } from '../../types/inspection';
-import { DraftingCompass, Upload, Trash2, Plus, Image as ImageIcon } from 'lucide-react';
+import { DraftingCompass, Upload, Trash2, Plus, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { uploadPhysicalImage } from '../../services/storage';
 
 interface Props {
   data: InspectionData;
@@ -9,22 +10,24 @@ interface Props {
 
 export const Section11Croquis: React.FC<Props> = ({ data, onChange }) => {
   const croquisList = data.seccion11.croquisList || [];
+  const [isUploading, setIsUploading] = useState(false);
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    Array.from(files).forEach((file) => {
-      if (file.size > 8 * 1024 * 1024) {
-        alert(`El archivo ${file.name} excede el límite de 8 MB.`);
-        return;
+    setIsUploading(true);
+    for (const file of Array.from(files)) {
+      if (file.size > 20 * 1024 * 1024) {
+        alert(`El archivo ${file.name} excede el límite de 20 MB.`);
+        continue;
       }
 
-      const reader = new FileReader();
-      reader.onload = (event) => {
+      try {
+        const url = await uploadPhysicalImage(file, 'croquis');
         const newItem = {
           id: 'croquis-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
-          url: event.target?.result as string,
+          url,
           titulo: 'Esquema de Señalamiento / Croquis de Proyecto',
           descripcion: '',
         };
@@ -36,10 +39,12 @@ export const Section11Croquis: React.FC<Props> = ({ data, onChange }) => {
             croquisList: [...(prev.seccion11.croquisList || []), newItem],
           },
         }));
-      };
-      reader.readAsDataURL(file);
-    });
+      } catch (err) {
+        console.error('Error subiendo croquis:', err);
+      }
+    }
 
+    setIsUploading(false);
     e.target.value = '';
   };
 
@@ -55,15 +60,16 @@ export const Section11Croquis: React.FC<Props> = ({ data, onChange }) => {
     }));
   };
 
-  const handleReplace = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleReplace = async (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      handleUpdate(id, 'url', event.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+    try {
+      const url = await uploadPhysicalImage(file, 'croquis_reemplazo');
+      handleUpdate(id, 'url', url);
+    } catch (err) {
+      console.error('Error reemplazando croquis:', err);
+    }
   };
 
   const handleDelete = (id: string) => {

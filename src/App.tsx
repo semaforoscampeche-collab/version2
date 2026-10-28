@@ -24,6 +24,7 @@ import { SectionObservaciones } from './components/sections/SectionObservaciones
 import { SectionFirma } from './components/sections/SectionFirma';
 
 import { ChevronLeft, ChevronRight, CheckCircle2, AlertCircle, Save } from 'lucide-react';
+import { DatabaseModal } from './components/DatabaseModal';
 
 export default function App() {
   const [inspections, setInspections] = useState<InspectionData[]>([]);
@@ -31,6 +32,7 @@ export default function App() {
   const [mode, setMode] = useState<'list' | 'edit' | 'preview'>('list');
   const [activeSection, setActiveSection] = useState<string>('s1');
   const [saving, setSaving] = useState(false);
+  const [dbModalOpen, setDbModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
   const autoSaveTimeoutRef = useRef<any>(null);
@@ -218,6 +220,7 @@ export default function App() {
         onTogglePreview={() => setMode(mode === 'preview' ? 'edit' : 'preview')}
         onGeneratePdf={handleGeneratePdf}
         onToggleStatus={handleToggleStatus}
+        onOpenDatabaseModal={() => setDbModalOpen(true)}
         saving={saving}
       />
 
@@ -232,6 +235,7 @@ export default function App() {
             onDuplicate={handleDuplicate}
             onDelete={handleDelete}
             onRefresh={loadInspections}
+            onOpenDatabaseModal={() => setDbModalOpen(true)}
           />
         )}
 
@@ -378,6 +382,12 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* Modal de Configuración y Estado de MySQL / Almacenamiento Local */}
+      <DatabaseModal
+        isOpen={dbModalOpen}
+        onClose={() => setDbModalOpen(false)}
+      />
     </div>
   );
 }
