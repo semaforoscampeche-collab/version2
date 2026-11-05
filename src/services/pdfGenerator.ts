@@ -140,6 +140,10 @@ export async function generateInspectionPDF(rawData: InspectionData): Promise<vo
   // --- SECCIÓN I: DATOS GENERALES ---
   currentY = addSectionTitle('I. DATOS GENERALES', currentY);
 
+  const tipoTramite = data.seccion1.tipoTramite || data.tipoTramite || 'IMPLEMENTACIÓN PASO PEATONAL';
+  const categoria = data.seccion1.categoria || data.categoria || 'MEJORA_VIAL';
+  const categoriaLabel = categoria === 'PERMISO' ? 'PERMISO' : 'PROPUESTA DE MEJORA VIAL';
+
   autoTable(doc, {
     startY: currentY,
     margin: { left: margin, right: margin },
@@ -147,6 +151,10 @@ export async function generateInspectionPDF(rawData: InspectionData): Promise<vo
     styles: { fontSize: 7.5, cellPadding: 1.8, textColor: TEXT_DARK },
     headStyles: { fillColor: LIGHT_BG, textColor: DARK_GRAY, fontStyle: 'bold' },
     body: [
+      [
+        { content: 'Tipo de Inspección / Trámite:', styles: { fontStyle: 'bold', cellWidth: 42, fillColor: [254, 243, 199] } },
+        { content: `[ ${categoriaLabel} ]  ${tipoTramite}`, colSpan: 5, styles: { fontStyle: 'bold', textColor: BURGUNDY } },
+      ],
       [
         { content: 'Folio Interno:', styles: { fontStyle: 'bold', cellWidth: 28 } },
         { content: data.seccion1.folioInterno || folio || 'S/N' },

@@ -1,5 +1,30 @@
 export type InspectionStatus = 'borrador' | 'finalizado';
 
+export type CategoriaInspeccion = 'PERMISO' | 'MEJORA_VIAL';
+
+export const TIPOS_PERMISO = [
+  'PERMISO ESPACIO PARA ASCENSO Y DESCENSO COMERCIO',
+  'PERMISO ESPACIO PARA ASCENSO Y DESCENSO DISCAPACIDAD',
+  'PERMISO FRANJA AMARILLA',
+  'PERMISO PARA ESPACIO DE CARGA Y DESCARGA COMERCIO',
+  'PERMISO PARA GARAJE',
+] as const;
+
+export const TIPOS_MEJORA_VIAL = [
+  'IMPLEMENTACIÓN DE ESPACIOS DE ASCENSO Y DESCENSO PARA ESCUELA',
+  'IMPLEMENTACIÓN DE ESPACIOS DE CARGA Y DESCARGA PARA RESIDUOS SÓLIDOS',
+  'IMPLEMENTACIÓN DE ESPACIOS PARA ESTACIONAMIENTO DE MOTOS',
+  'IMPLEMENTACIÓN PARADERO TRANSPORTE PUBLICO',
+  'IMPLEMENTACIÓN PASO PEATONAL',
+  'IMPLEMENTACIÓN RAMPAS PARA PERSONAS CON DISCAPACIDAD',
+  'IMPLEMENTACIÓN REDUCTORES DE VELOCIDAD',
+  'IMPLEMENTACIÓN SEÑALEROS VERTICALES',
+  'PROPUESTA INTEGRAL DE MEJORAMIENTO VIAL',
+  'REUBICACIÓN PARADERO TRANSPORTE PUBLICO',
+] as const;
+
+export type TipoTramite = (typeof TIPOS_PERMISO)[number] | (typeof TIPOS_MEJORA_VIAL)[number] | string;
+
 export interface InstitutionalConfig {
   dependencia: string;
   direccionUnidad: string;
@@ -16,6 +41,10 @@ export interface InspectionData {
   createdAt: string;
   updatedAt: string;
 
+  // Clasificación del trámite / inspección
+  categoria?: CategoriaInspeccion;
+  tipoTramite?: TipoTramite;
+
   institutionalInfo: InstitutionalConfig;
 
   // I. DATOS GENERALES
@@ -24,6 +53,8 @@ export interface InspectionData {
     fechaInspeccion: string;
     horaInspeccion: string;
     solicitante: string;
+    categoria?: CategoriaInspeccion;
+    tipoTramite?: TipoTramite;
     ubicacionExacta: string;
     coloniaBarrio: string;
     municipio: string;
@@ -228,6 +259,9 @@ export const INITIAL_INSPECTION: InspectionData = {
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 
+  categoria: 'MEJORA_VIAL',
+  tipoTramite: 'IMPLEMENTACIÓN PASO PEATONAL',
+
   institutionalInfo: { ...DEFAULT_INSTITUTIONAL_CONFIG },
 
   seccion1: {
@@ -235,6 +269,8 @@ export const INITIAL_INSPECTION: InspectionData = {
     fechaInspeccion: new Date().toISOString().split('T')[0],
     horaInspeccion: '10:00',
     solicitante: '',
+    categoria: 'MEJORA_VIAL',
+    tipoTramite: 'IMPLEMENTACIÓN PASO PEATONAL',
     ubicacionExacta: '',
     coloniaBarrio: '',
     municipio: 'San Francisco de Campeche',

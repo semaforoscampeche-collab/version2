@@ -25,6 +25,8 @@ import { SectionFirma } from './components/sections/SectionFirma';
 
 import { ChevronLeft, ChevronRight, CheckCircle2, AlertCircle, Save } from 'lucide-react';
 import { DatabaseModal } from './components/DatabaseModal';
+import { NewInspectionTypeModal } from './components/NewInspectionTypeModal';
+import { CategoriaInspeccion, TipoTramite } from './types/inspection';
 
 export default function App() {
   const [inspections, setInspections] = useState<InspectionData[]>([]);
@@ -33,6 +35,7 @@ export default function App() {
   const [activeSection, setActiveSection] = useState<string>('s1');
   const [saving, setSaving] = useState(false);
   const [dbModalOpen, setDbModalOpen] = useState(false);
+  const [typeModalOpen, setTypeModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
   const autoSaveTimeoutRef = useRef<any>(null);
@@ -63,17 +66,26 @@ export default function App() {
   };
 
   const handleCreateNew = () => {
+    setTypeModalOpen(true);
+  };
+
+  const handleConfirmNewInspection = (categoria: CategoriaInspeccion, tipoTramite: TipoTramite) => {
     const newId = 'insp-' + Date.now();
-    const newFolio = `DTV-BS-PP-${String(inspections.length + 1).padStart(2, '0')}/${new Date().getFullYear()}`;
+    const prefix = categoria === 'PERMISO' ? 'DTV-PERM' : 'DTV-MEJV';
+    const newFolio = `${prefix}-${String(inspections.length + 1).padStart(2, '0')}/${new Date().getFullYear()}`;
     const newInspection: InspectionData = {
       ...INITIAL_INSPECTION,
       id: newId,
       folioInterno: newFolio,
+      categoria,
+      tipoTramite,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       seccion1: {
         ...INITIAL_INSPECTION.seccion1,
         folioInterno: newFolio,
+        categoria,
+        tipoTramite,
         fechaInspeccion: new Date().toISOString().split('T')[0],
       },
     };
@@ -382,6 +394,13 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* Modal de Selección de Tipo de Inspección y Trámite */}
+      <NewInspectionTypeModal
+        isOpen={typeModalOpen}
+        onClose={() => setTypeModalOpen(false)}
+        onConfirm={handleConfirmNewInspection}
+      />
 
       {/* Modal de Configuración y Estado de MySQL / Almacenamiento Local */}
       <DatabaseModal

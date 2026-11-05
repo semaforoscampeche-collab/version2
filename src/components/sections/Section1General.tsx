@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { InspectionData } from '../../types/inspection';
-import { MapPin, Upload, Image as ImageIcon, Trash2, Calendar, Clock, FileText, Compass, Loader2 } from 'lucide-react';
+import { InspectionData, TIPOS_PERMISO, TIPOS_MEJORA_VIAL, CategoriaInspeccion, TipoTramite } from '../../types/inspection';
+import { MapPin, Upload, Image as ImageIcon, Trash2, Calendar, Clock, FileText, Compass, Loader2, Award, Wrench } from 'lucide-react';
 import { MapModal } from '../MapModal';
 import { uploadPhysicalImage } from '../../services/storage';
 
@@ -14,6 +14,34 @@ export const Section1General: React.FC<Props> = ({ data, onChange }) => {
   const [isUploading, setIsUploading] = useState(false);
   const s1 = data.seccion1;
 
+  const categoriaActual: CategoriaInspeccion = s1.categoria || data.categoria || 'MEJORA_VIAL';
+  const tipoTramiteActual: string = s1.tipoTramite || data.tipoTramite || 'IMPLEMENTACIÓN PASO PEATONAL';
+
+  const handleCategoriaChange = (cat: CategoriaInspeccion) => {
+    const defaultTipo = cat === 'PERMISO' ? TIPOS_PERMISO[0] : TIPOS_MEJORA_VIAL[4]; // IMPLEMENTACIÓN PASO PEATONAL
+    onChange((prev) => ({
+      ...prev,
+      categoria: cat,
+      tipoTramite: defaultTipo,
+      seccion1: {
+        ...prev.seccion1,
+        categoria: cat,
+        tipoTramite: defaultTipo,
+      },
+    }));
+  };
+
+  const handleTipoTramiteChange = (tipo: TipoTramite) => {
+    onChange((prev) => ({
+      ...prev,
+      tipoTramite: tipo,
+      seccion1: {
+        ...prev.seccion1,
+        tipoTramite: tipo,
+      },
+    }));
+  };
+
   const handleFieldChange = (field: keyof typeof s1, value: any) => {
     onChange((prev) => ({
       ...prev,
@@ -23,6 +51,8 @@ export const Section1General: React.FC<Props> = ({ data, onChange }) => {
       },
       // If folio is changed in section 1, keep root folio in sync
       ...(field === 'folioInterno' ? { folioInterno: value } : {}),
+      ...(field === 'categoria' ? { categoria: value } : {}),
+      ...(field === 'tipoTramite' ? { tipoTramite: value } : {}),
     }));
   };
 
@@ -55,8 +85,106 @@ export const Section1General: React.FC<Props> = ({ data, onChange }) => {
           I. Datos Generales de la Inspección
         </h2>
         <p className="text-sm text-slate-500 mt-1">
-          Identificación técnica del expediente, horario, ubicación exacta y georreferenciación oficial.
+          Identificación técnica del expediente, tipo de inspección/levantamiento, horario, ubicación exacta y georreferenciación oficial.
         </p>
+      </div>
+
+      {/* Selector de Tipo de Inspección y Levantamiento */}
+      <div className="bg-gradient-to-r from-slate-50 to-amber-50/40 border-2 border-[#691C32]/20 rounded-xl p-4 sm:p-5 shadow-xs space-y-4">
+        <div>
+          <span className="text-[11px] font-bold tracking-wider uppercase text-[#691C32] flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[#691C32]" />
+            Tipo de Inspección y Levantamiento Técnico a Realizar
+          </span>
+          <p className="text-xs text-slate-600 mt-0.5">
+            Seleccione si el levantamiento corresponde a una solicitud de <strong>Permiso</strong> o a una <strong>Propuesta para Mejora Vial</strong>. Esto define el encabezado del anexo y la orientación técnica de campo.
+          </p>
+        </div>
+
+        {/* Botones de Categoría */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => handleCategoriaChange('PERMISO')}
+            className={`p-3.5 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
+              categoriaActual === 'PERMISO'
+                ? 'border-[#691C32] bg-[#691C32] text-white shadow-md'
+                : 'border-slate-300 bg-white hover:border-slate-400 text-slate-700'
+            }`}
+          >
+            <div className={`p-2 rounded-lg shrink-0 ${categoriaActual === 'PERMISO' ? 'bg-white/20 text-white' : 'bg-amber-100 text-[#691C32]'}`}>
+              <Award className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs font-black uppercase tracking-wide">
+                1. Permisos (5 Trámites)
+              </div>
+              <div className={`text-[11px] mt-0.5 ${categoriaActual === 'PERMISO' ? 'text-white/80' : 'text-slate-500'}`}>
+                Ascenso/descenso, franja amarilla, carga/descarga o garaje
+              </div>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleCategoriaChange('MEJORA_VIAL')}
+            className={`p-3.5 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
+              categoriaActual === 'MEJORA_VIAL'
+                ? 'border-[#691C32] bg-[#691C32] text-white shadow-md'
+                : 'border-slate-300 bg-white hover:border-slate-400 text-slate-700'
+            }`}
+          >
+            <div className={`p-2 rounded-lg shrink-0 ${categoriaActual === 'MEJORA_VIAL' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'}`}>
+              <Wrench className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs font-black uppercase tracking-wide">
+                2. Propuestas para Mejora Vial (10 Trámites)
+              </div>
+              <div className={`text-[11px] mt-0.5 ${categoriaActual === 'MEJORA_VIAL' ? 'text-white/80' : 'text-slate-500'}`}>
+                Pasos peatonales, reductores, paraderos, rampas, señaleros o integral
+              </div>
+            </div>
+          </button>
+        </div>
+
+        {/* Selector de Trámite Específico */}
+        <div>
+          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            Trámite Específico de Inspección <span className="text-red-500">*</span>
+          </label>
+          <select
+            value={tipoTramiteActual}
+            onChange={(e) => handleTipoTramiteChange(e.target.value)}
+            className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#691C32]/30 focus:border-[#691C32] font-bold text-slate-900 shadow-2xs cursor-pointer"
+          >
+            {categoriaActual === 'PERMISO' ? (
+              <optgroup label="TRÁMITES DE PERMISOS">
+                {TIPOS_PERMISO.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </optgroup>
+            ) : (
+              <optgroup label="TRÁMITES DE PROPUESTAS PARA MEJORA VIAL">
+                {TIPOS_MEJORA_VIAL.map((mv) => (
+                  <option key={mv} value={mv}>
+                    {mv}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </select>
+          <div className="mt-1.5 flex items-center justify-between text-[11px]">
+            <span className="text-slate-500">
+              Trámite activo: <span className="font-bold text-[#691C32]">{tipoTramiteActual}</span>
+            </span>
+            <span className="text-slate-400">
+              Aparece en el encabezado oficial y dictamen técnico
+            </span>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">

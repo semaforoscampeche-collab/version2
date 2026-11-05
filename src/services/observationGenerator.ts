@@ -14,12 +14,16 @@ export function generateObjectiveObservations(data: InspectionData): string {
   const colStr = seccion1.coloniaBarrio ? `, Col./Barrio ${seccion1.coloniaBarrio}` : '';
   const munStr = seccion1.municipio ? `, Municipio de ${seccion1.municipio}` : '';
 
+  const tipoTramite = seccion1.tipoTramite || data.tipoTramite;
+  const categoria = seccion1.categoria || data.categoria;
+  const catLabel = categoria === 'PERMISO' ? 'trámite de PERMISO' : 'propuesta de MEJORA VIAL';
+
   p1Parts.push(
-    `Se llevó a cabo la inspección técnica de campo ${fechaStr} ${horaStr} ${ubicStr}${colStr}${munStr}.`
+    `Se llevó a cabo la inspección técnica de campo y levantamiento físico ${fechaStr} ${horaStr} ${ubicStr}${colStr}${munStr}, correspondiente al ${catLabel}: "${tipoTramite || 'INTERVENCIÓN VIAL'}".`
   );
 
   if (seccion1.solicitante) {
-    p1Parts.push(`Propuesta motivada por: ${seccion1.solicitante}.`);
+    p1Parts.push(`Solicitud técnica motivada por: ${seccion1.solicitante}.`);
   }
 
   const tipos = seccion2.tipoVialidad.length > 0 ? seccion2.tipoVialidad.join(', ') : 'No especificado';

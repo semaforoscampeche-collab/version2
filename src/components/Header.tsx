@@ -91,10 +91,19 @@ export const Header: React.FC<Props> = ({
                 </span>
               )}
             </h1>
-            <p className="text-[11px] text-white/75 truncate max-w-md">
-              {mode === 'list'
-                ? 'Dirección de Transito y Vialidad • Balizamiento y Semaforización'
-                : data?.seccion1.ubicacionExacta || 'Sin ubicación registrada aún'}
+            <p className="text-[11px] text-white/75 truncate max-w-md flex items-center gap-2">
+              {mode === 'list' ? (
+                'Dirección de Transito y Vialidad • Balizamiento y Semaforización'
+              ) : (
+                <>
+                  {(data?.seccion1.tipoTramite || data?.tipoTramite) && (
+                    <span className="font-extrabold text-amber-300 uppercase bg-black/20 px-1.5 py-0.5 rounded text-[10px]">
+                      {data?.seccion1.tipoTramite || data?.tipoTramite}
+                    </span>
+                  )}
+                  <span>{data?.seccion1.ubicacionExacta || 'Sin ubicación registrada aún'}</span>
+                </>
+              )}
             </p>
           </div>
         </div>

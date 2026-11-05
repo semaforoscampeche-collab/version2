@@ -126,27 +126,48 @@ export const Section10Propuesta: React.FC<Props> = ({ data, onChange }) => {
         />
         <div className="flex flex-wrap items-center gap-2 mt-2">
           <span className="text-[11px] font-semibold text-slate-500">Plantillas técnicas rápidas:</span>
-          <button
-            type="button"
-            onClick={() => handleTextoChange('Con base en la inspección de campo y la velocidad vehicular registrada, se dictamina PROCEDENTE ÚNICAMENTE la instalación de reductores de velocidad acompañados de señalamiento vertical preventivo (SP) y restrictivo de velocidad (SR a 30 km/h) a 25 metros de aproximación en ambos sentidos de circulación.')}
-            className="text-[11px] px-2.5 py-1 bg-slate-100 hover:bg-[#691C32]/10 hover:text-[#691C32] text-slate-700 rounded border border-slate-200 transition-colors cursor-pointer"
-          >
-            + Solo reductores con señal vertical
-          </button>
-          <button
-            type="button"
-            onClick={() => handleTextoChange('Con base en los aforos peatonales y vehiculares, se dictamina PROCEDENTE la implementación de un paso peatonal a nivel de calzada tipo cebra (franjas de 0.40 m) complementado con reductores de velocidad trapeciales a 20 metros de aproximación y señalamiento vertical reglamentario.')}
-            className="text-[11px] px-2.5 py-1 bg-slate-100 hover:bg-[#691C32]/10 hover:text-[#691C32] text-slate-700 rounded border border-slate-200 transition-colors cursor-pointer"
-          >
-            + Paso peatonal c/ reductores
-          </button>
-          <button
-            type="button"
-            onClick={() => handleTextoChange('Tras la inspección técnica ocular y el aforo vial realizado, se concluye que NO PROCEDE la solicitud debido a que las características geométricas y el flujo vehicular no cumplen los umbrales mínimos establecidos por la normativa técnica de vialidad.')}
-            className="text-[11px] px-2.5 py-1 bg-slate-100 hover:bg-red-50 hover:text-red-700 text-slate-700 rounded border border-slate-200 transition-colors cursor-pointer"
-          >
-            + No procede
-          </button>
+          {(data.seccion1.categoria === 'PERMISO' || data.categoria === 'PERMISO') ? (
+            <>
+              <button
+                type="button"
+                onClick={() => handleTextoChange(`Con base en la inspección ocular, dimensiones de calzada y frente del predio, se dictamina PROCEDENTE el otorgamiento de ${data.seccion1.tipoTramite || 'PERMISO VIAL'}, debiendo delimitar el espacio reglamentario conforme al manual técnico de balizamiento, sin obstruir el tránsito peatonal ni accesos a cocheras contiguas.`)}
+                className="text-[11px] px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded border border-amber-300 transition-colors cursor-pointer"
+              >
+                + Procedente para Permiso
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTextoChange(`Una vez realizada la inspección física de campo, se concluye que NO PROCEDE el otorgamiento del permiso solicitado en virtud de que el ancho de la acera/calzada y las condiciones de flujo vehicular no permiten la reserva del espacio conforme a los reglamentos viales vigentes.`)}
+                className="text-[11px] px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-800 rounded border border-red-300 transition-colors cursor-pointer"
+              >
+                + No procede Permiso
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => handleTextoChange('Con base en la inspección de campo y la velocidad vehicular registrada, se dictamina PROCEDENTE ÚNICAMENTE la instalación de reductores de velocidad acompañados de señalamiento vertical preventivo (SP) y restrictivo de velocidad (SR a 30 km/h) a 25 metros de aproximación en ambos sentidos de circulación.')}
+                className="text-[11px] px-2.5 py-1 bg-slate-100 hover:bg-[#691C32]/10 hover:text-[#691C32] text-slate-700 rounded border border-slate-200 transition-colors cursor-pointer"
+              >
+                + Solo reductores con señal vertical
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTextoChange('Con base en los aforos peatonales y vehiculares, se dictamina PROCEDENTE la implementación de un paso peatonal a nivel de calzada tipo cebra (franjas de 0.40 m) complementado con reductores de velocidad trapeciales a 20 metros de aproximación y señalamiento vertical reglamentario.')}
+                className="text-[11px] px-2.5 py-1 bg-slate-100 hover:bg-[#691C32]/10 hover:text-[#691C32] text-slate-700 rounded border border-slate-200 transition-colors cursor-pointer"
+              >
+                + Paso peatonal c/ reductores
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTextoChange('Tras la inspección técnica ocular y el aforo vial realizado, se concluye que NO PROCEDE la solicitud debido a que las características geométricas y el flujo vehicular no cumplen los umbrales mínimos establecidos por la normativa técnica de vialidad.')}
+                className="text-[11px] px-2.5 py-1 bg-slate-100 hover:bg-red-50 hover:text-red-700 text-slate-700 rounded border border-slate-200 transition-colors cursor-pointer"
+              >
+                + No procede
+              </button>
+            </>
+          )}
         </div>
         <span className="text-[11px] text-slate-400 mt-1.5 block">
           Esta memoria técnica se imprimirá textualmente en el cuerpo resolutivo del dictamen.

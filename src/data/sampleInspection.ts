@@ -16,12 +16,17 @@ export const SAMPLE_INSPECTION_DATA: InspectionData = {
   createdAt: '2026-10-15T09:30:00Z',
   updatedAt: '2026-10-20T14:45:00Z',
 
+  categoria: 'MEJORA_VIAL',
+  tipoTramite: 'IMPLEMENTACIÓN PASO PEATONAL',
+
   institutionalInfo: { ...DEFAULT_INSTITUTIONAL_CONFIG },
 
   seccion1: {
     folioInterno: 'DTV-BS-PP-IPP-06/2026',
     fechaInspeccion: '2026-10-18',
     horaInspeccion: '08:30',
+    categoria: 'MEJORA_VIAL',
+    tipoTramite: 'IMPLEMENTACIÓN PASO PEATONAL',
     solicitante: 'Dirección de la Escuela Primaria "Benito Juárez García" y Asociación de Padres de Familia',
     ubicacionExacta: 'Av. Adolfo Ruiz Cortines entre Calle 53 y Calle 55',
     coloniaBarrio: 'Barrio de San Román',

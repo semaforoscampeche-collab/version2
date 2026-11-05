@@ -161,10 +161,16 @@ export const DocumentPreview: React.FC<Props> = ({ data, onBackToEdit, onGoToSec
             <h2 className="text-[11px] md:text-xs font-bold text-slate-700 uppercase">
               {institutional.direccionUnidad || 'DIRECCIÓN DE TRÁNSITO Y VIALIDAD'}
             </h2>
-            <div className="pt-1">
+            <div className="pt-1 flex flex-wrap items-center gap-1.5">
               <span className="inline-block bg-[#691C32] text-white text-[10px] md:text-xs font-black px-2.5 py-0.5 rounded tracking-wider uppercase">
                 ANEXO TÉCNICO DE INSPECCIÓN Y LEVANTAMIENTO DE CAMPO
               </span>
+              {(s1.tipoTramite || data.tipoTramite) && (
+                <span className="inline-block bg-amber-400 text-slate-900 text-[10px] md:text-xs font-black px-2.5 py-0.5 rounded tracking-wide uppercase shadow-2xs">
+                  {s1.categoria === 'PERMISO' || data.categoria === 'PERMISO' ? 'PERMISO: ' : 'MEJORA VIAL: '}
+                  {s1.tipoTramite || data.tipoTramite}
+                </span>
+              )}
             </div>
           </div>
 
@@ -181,10 +187,21 @@ export const DocumentPreview: React.FC<Props> = ({ data, onBackToEdit, onGoToSec
 
         {/* I. DATOS GENERALES */}
         <section className="space-y-2">
-          <div className="bg-[#691C32] text-white px-3 py-1 text-xs font-bold rounded-sm uppercase tracking-wider">
-            I. Datos Generales
+          <div className="bg-[#691C32] text-white px-3 py-1 text-xs font-bold rounded-sm uppercase tracking-wider flex items-center justify-between">
+            <span>I. Datos Generales</span>
+            {(s1.tipoTramite || data.tipoTramite) && (
+              <span className="text-[10px] font-normal text-amber-200 uppercase">
+                {s1.categoria === 'PERMISO' || data.categoria === 'PERMISO' ? 'Modalidad: Permiso' : 'Modalidad: Mejora Vial'}
+              </span>
+            )}
           </div>
           <div className="border border-slate-200 rounded text-xs divide-y divide-slate-200 bg-slate-50/30">
+            <div className="p-2.5 bg-amber-50/70 border-b border-amber-200/80">
+              <span className="font-bold text-[#691C32] uppercase">Tipo de Inspección / Levantamiento:</span>{' '}
+              <span className="font-extrabold text-slate-900 uppercase">
+                {s1.tipoTramite || data.tipoTramite || 'IMPLEMENTACIÓN PASO PEATONAL'}
+              </span>
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-4 p-2 gap-2">
               <div><span className="font-bold text-slate-600">Fecha:</span> {s1.fechaInspeccion || '-'}</div>
               <div><span className="font-bold text-slate-600">Hora:</span> {s1.horaInspeccion || '-'}</div>

@@ -15,6 +15,8 @@ USE `anexo_tecnico_vial`;
 CREATE TABLE IF NOT EXISTS `inspecciones` (
   `id` VARCHAR(120) NOT NULL,
   `folio_interno` VARCHAR(100) NOT NULL,
+  `categoria` VARCHAR(50) NULL DEFAULT 'MEJORA_VIAL' COMMENT 'PERMISO o MEJORA_VIAL',
+  `tipo_tramite` VARCHAR(255) NULL COMMENT 'Trámite específico de permiso o mejora vial',
   `fecha_inspeccion` VARCHAR(30) NULL,
   `hora_inspeccion` VARCHAR(30) NULL,
   `solicitante` TEXT NULL,
@@ -30,6 +32,7 @@ CREATE TABLE IF NOT EXISTS `inspecciones` (
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_folio` (`folio_interno`),
+  KEY `idx_categoria_tramite` (`categoria`, `tipo_tramite`(100)),
   KEY `idx_fecha` (`fecha_inspeccion`),
   KEY `idx_municipio_colonia` (`municipio`, `colonia`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

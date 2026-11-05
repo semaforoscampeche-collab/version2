@@ -95,6 +95,8 @@ async function initMySQL() {
       CREATE TABLE IF NOT EXISTS \`inspecciones\` (
         \`id\` VARCHAR(120) NOT NULL PRIMARY KEY,
         \`folio_interno\` VARCHAR(100) NOT NULL,
+        \`categoria\` VARCHAR(50) NULL DEFAULT 'MEJORA_VIAL',
+        \`tipo_tramite\` VARCHAR(255) NULL,
         \`fecha_inspeccion\` VARCHAR(30) NULL,
         \`hora_inspeccion\` VARCHAR(30) NULL,
         \`solicitante\` TEXT NULL,
@@ -143,12 +145,14 @@ async function insertOrUpdateMySQL(item: any) {
   if (!mysqlPool) return;
   const sql = `
     INSERT INTO inspecciones (
-      id, folio_interno, fecha_inspeccion, hora_inspeccion, solicitante,
+      id, folio_interno, categoria, tipo_tramite, fecha_inspeccion, hora_inspeccion, solicitante,
       ubicacion_exacta, colonia, municipio, coordenadas, estado,
       responsable_nombre, responsable_cargo, data_json
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
       folio_interno = VALUES(folio_interno),
+      categoria = VALUES(categoria),
+      tipo_tramite = VALUES(tipo_tramite),
       fecha_inspeccion = VALUES(fecha_inspeccion),
       hora_inspeccion = VALUES(hora_inspeccion),
       solicitante = VALUES(solicitante),
@@ -166,14 +170,16 @@ async function insertOrUpdateMySQL(item: any) {
   await mysqlPool.query(sql, [
     item.id,
     item.folioInterno || item.id,
-    item.fechaInspeccion || '',
-    item.horaInspeccion || '',
-    item.solicitante || '',
-    item.ubicacionExacta || '',
-    item.colonia || '',
-    item.municipio || 'Campeche',
-    item.coordenadasGPS || '',
-    item.estado || 'Borrador',
+    item.categoria || item.seccion1?.categoria || 'MEJORA_VIAL',
+    item.tipoTramite || item.seccion1?.tipoTramite || '',
+    item.fechaInspeccion || item.seccion1?.fechaInspeccion || '',
+    item.horaInspeccion || item.seccion1?.horaInspeccion || '',
+    item.solicitante || item.seccion1?.solicitante || '',
+    item.ubicacionExacta || item.seccion1?.ubicacionExacta || '',
+    item.colonia || item.seccion1?.coloniaBarrio || '',
+    item.municipio || item.seccion1?.municipio || 'Campeche',
+    item.coordenadasGPS || (item.seccion1?.latitud ? `${item.seccion1?.latitud}, ${item.seccion1?.longitud}` : ''),
+    item.status || item.estado || 'Borrador',
     item.responsable?.nombreCompleto || 'Pablo Ernesto Garrido Vera',
     item.responsable?.cargo || 'Encargado Balizamiento y Semaforizacion',
     JSON.stringify(item),
