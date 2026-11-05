@@ -533,6 +533,7 @@ export async function generateInspectionPDF(rawData: InspectionData): Promise<vo
     'Procede con semaforización',
     'Procede con isla de refugio',
     'Procede con señalética',
+    'Procede con cajón de discapacidad',
     'No procede',
   ];
 
@@ -552,8 +553,8 @@ export async function generateInspectionPDF(rawData: InspectionData): Promise<vo
     body: [
       [
         { content: 'Dictamen de Viabilidad:', styles: { fontStyle: 'bold', fillColor: LIGHT_BG } },
-        { content: dictBoxes.slice(0, 4).join('\n') },
-        { content: dictBoxes.slice(4).join('\n') },
+        { content: dictBoxes.slice(0, 5).join('\n') },
+        { content: dictBoxes.slice(5).join('\n') },
       ],
       [
         { content: 'Memoria y Justificación Técnica de la Propuesta:', styles: { fontStyle: 'bold', fillColor: LIGHT_BG } },

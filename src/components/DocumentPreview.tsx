@@ -506,6 +506,7 @@ export const DocumentPreview: React.FC<Props> = ({ data, onBackToEdit, onGoToSec
                   'Procede con semaforización',
                   'Procede con isla de refugio',
                   'Procede con señalética',
+                  'Procede con cajón de discapacidad',
                   'No procede',
                 ].map(opc => {
                   const isChecked = Boolean(

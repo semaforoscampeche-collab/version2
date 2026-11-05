@@ -15,6 +15,7 @@ export const OPCIONES_DICTAMEN = [
   'Procede con semaforización',
   'Procede con isla de refugio',
   'Procede con señalética',
+  'Procede con cajón de discapacidad',
   'No procede',
 ];
 
@@ -128,6 +129,20 @@ export const Section10Propuesta: React.FC<Props> = ({ data, onChange }) => {
           <span className="text-[11px] font-semibold text-slate-500">Plantillas técnicas rápidas:</span>
           {(data.seccion1.categoria === 'PERMISO' || data.categoria === 'PERMISO') ? (
             <>
+              {(data.seccion1.tipoTramite === 'PERMISO ESPACIO PARA ASCENSO Y DESCENSO DISCAPACIDAD' || data.tipoTramite === 'PERMISO ESPACIO PARA ASCENSO Y DESCENSO DISCAPACIDAD') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!s10.dictamenOpciones.includes('Procede con cajón de discapacidad')) {
+                      toggleDictamen('Procede con cajón de discapacidad');
+                    }
+                    handleTextoChange('Con base en la inspección de campo y la evaluación del frente del predio, se dictamina PROCEDENTE la asignación de espacio exclusivo para personas con discapacidad mediante la delimitación de un cajón de estacionamiento reglamentario (longitud 6.00 m x ancho 2.50 m) con señalamiento horizontal azul reflexivo, símbolo internacional de accesibilidad y señalamiento vertical correspondiente, garantizando el libre tránsito y acceso seguro.');
+                  }}
+                  className="text-[11px] px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold rounded border border-blue-300 transition-colors cursor-pointer"
+                >
+                  + Procede cajón de discapacidad (Texto + Casilla)
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => handleTextoChange(`Con base en la inspección ocular, dimensiones de calzada y frente del predio, se dictamina PROCEDENTE el otorgamiento de ${data.seccion1.tipoTramite || 'PERMISO VIAL'}, debiendo delimitar el espacio reglamentario conforme al manual técnico de balizamiento, sin obstruir el tránsito peatonal ni accesos a cocheras contiguas.`)}
