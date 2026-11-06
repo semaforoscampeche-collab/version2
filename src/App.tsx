@@ -402,7 +402,7 @@ export default function App() {
         onConfirm={handleConfirmNewInspection}
       />
 
-      {/* Modal de Configuración y Estado de MySQL / Almacenamiento Local */}
+      {/* Modal de Almacenamiento Físico Local en Disco */}
       <DatabaseModal
         isOpen={dbModalOpen}
         onClose={() => setDbModalOpen(false)}

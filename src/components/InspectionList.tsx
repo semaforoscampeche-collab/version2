@@ -16,7 +16,8 @@ import {
   CheckCircle2,
   Clock,
   Upload,
-  Database,
+  HardDrive,
+  FileDown,
   Building
 } from 'lucide-react';
 import { generateInspectionPDF } from '../services/pdfGenerator';
@@ -120,10 +121,10 @@ export const InspectionList: React.FC<Props> = ({
                 type="button"
                 onClick={onOpenDatabaseModal}
                 className="inline-flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-200 border border-emerald-400/30 px-3 py-1 rounded-full text-[11px] font-bold cursor-pointer transition-colors"
-                title="Configuración de Base de Datos MySQL y Almacenamiento Local en Disco"
+                title="Almacenamiento Físico Local en esta PC"
               >
-                <Database className="w-3.5 h-3.5 text-amber-300" />
-                Base de Datos MySQL / Carpeta Local
+                <HardDrive className="w-3.5 h-3.5 text-amber-300" />
+                Almacenamiento Local en Disco
               </button>
             )}
           </div>
@@ -153,9 +154,10 @@ export const InspectionList: React.FC<Props> = ({
               type="button"
               onClick={onOpenDatabaseModal}
               className="px-4 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer transition-all shadow-xs"
+              title="Ver ubicación física de carpetas y archivos en el disco de tu PC"
             >
-              <Database className="w-4 h-4 text-amber-200" />
-              Base de Datos
+              <HardDrive className="w-4 h-4 text-amber-200" />
+              Carpetas Locales
             </button>
           )}
 
@@ -376,7 +378,7 @@ export const InspectionList: React.FC<Props> = ({
                     className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
                     title="Descargar copia de respaldo JSON"
                   >
-                    <Database className="w-4 h-4" />
+                    <FileDown className="w-4 h-4" />
                   </button>
                   <button
                     type="button"

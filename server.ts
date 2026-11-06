@@ -3,7 +3,6 @@ import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
-import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -12,12 +11,16 @@ const app = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const HOST = '0.0.0.0';
 
-// Configuración de rutas de almacenamiento físico local
+// ==============================================================================
+// ALMACENAMIENTO FÍSICO LOCAL EN EL DISCO DURO DE ESTA COMPUTADORA
+// - Fotos y croquis: ./uploads/ (archivos JPG/PNG físicos)
+// - Expedientes y datos: ./data/inspecciones.json (archivo físico de inspecciones)
+// ==============================================================================
 const UPLOADS_DIR = path.resolve(process.cwd(), 'uploads');
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 const JSON_DB_FILE = path.join(DATA_DIR, 'inspecciones.json');
 
-// Asegurar existencia física de directorios
+// Asegurar existencia física de directorios y archivo de datos
 if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
@@ -28,7 +31,7 @@ if (!fs.existsSync(JSON_DB_FILE)) {
   fs.writeFileSync(JSON_DB_FILE, JSON.stringify([], null, 2), 'utf-8');
 }
 
-// Configuración de Multer para guardar archivos directamente en /uploads
+// Configuración de Multer para guardar físicamente cada archivo en /uploads
 const storageConfig = multer.diskStorage({
   destination: (_req, _file, cb) => {
     cb(null, UPLOADS_DIR);
@@ -49,174 +52,36 @@ const upload = multer({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Servir estáticamente la carpeta /uploads para que cualquier PC de la red acceda a las fotos
+// Servir estáticamente la carpeta /uploads para que las imágenes se visualicen directamente desde el disco
 app.use('/uploads', express.static(UPLOADS_DIR));
 
-// Variables de estado de MySQL
-let mysqlPool: mysql.Pool | null = null;
-let isMySQLConnected = false;
-let mySQLErrorMsg = '';
-
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '3306', 10),
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'anexo_tecnico_vial',
-};
-
-async function initMySQL() {
-  try {
-    // 1. Probar conexión y crear BD si no existe
-    const tempConn = await mysql.createConnection({
-      host: dbConfig.host,
-      port: dbConfig.port,
-      user: dbConfig.user,
-      password: dbConfig.password,
-      connectTimeout: 3000,
-    });
-
-    await tempConn.query(
-      `CREATE DATABASE IF NOT EXISTS \`${dbConfig.database}\` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`
-    );
-    await tempConn.end();
-
-    // 2. Crear pool a la base de datos
-    mysqlPool = mysql.createPool({
-      ...dbConfig,
-      waitForConnections: true,
-      connectionLimit: 10,
-      queueLimit: 0,
-      connectTimeout: 5000,
-    });
-
-    // 3. Crear tabla si no existe
-    await mysqlPool.query(`
-      CREATE TABLE IF NOT EXISTS \`inspecciones\` (
-        \`id\` VARCHAR(120) NOT NULL PRIMARY KEY,
-        \`folio_interno\` VARCHAR(100) NOT NULL,
-        \`categoria\` VARCHAR(50) NULL DEFAULT 'MEJORA_VIAL',
-        \`tipo_tramite\` VARCHAR(255) NULL,
-        \`fecha_inspeccion\` VARCHAR(30) NULL,
-        \`hora_inspeccion\` VARCHAR(30) NULL,
-        \`solicitante\` TEXT NULL,
-        \`ubicacion_exacta\` TEXT NULL,
-        \`colonia\` VARCHAR(255) NULL,
-        \`municipio\` VARCHAR(255) NULL DEFAULT 'Campeche',
-        \`coordenadas\` VARCHAR(100) NULL,
-        \`estado\` VARCHAR(50) NOT NULL DEFAULT 'Borrador',
-        \`responsable_nombre\` VARCHAR(255) NULL DEFAULT 'Pablo Ernesto Garrido Vera',
-        \`responsable_cargo\` VARCHAR(255) NULL DEFAULT 'Encargado Balizamiento y Semaforizacion',
-        \`data_json\` LONGTEXT NOT NULL,
-        \`created_at\` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        \`updated_at\` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        UNIQUE KEY \`idx_folio\` (\`folio_interno\`)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-    `);
-
-    isMySQLConnected = true;
-    mySQLErrorMsg = '';
-    console.log(`[MySQL] Conexión exitosa a ${dbConfig.database}@${dbConfig.host}:${dbConfig.port}`);
-
-    // Migrar datos de data/inspecciones.json si la tabla está vacía
-    try {
-      const [rows]: any = await mysqlPool.query('SELECT COUNT(*) as count FROM inspecciones');
-      if (rows[0].count === 0 && fs.existsSync(JSON_DB_FILE)) {
-        const localData = JSON.parse(fs.readFileSync(JSON_DB_FILE, 'utf-8'));
-        for (const item of localData) {
-          await insertOrUpdateMySQL(item);
-        }
-        console.log(`[MySQL] Se sincronizaron ${localData.length} registros locales iniciales a MySQL.`);
-      }
-    } catch (e) {
-      console.warn('[MySQL] Advertencia durante sincronización inicial:', e);
-    }
-  } catch (err: any) {
-    isMySQLConnected = false;
-    mySQLErrorMsg = err?.message || 'No se pudo conectar a MySQL';
-    console.log(`[Storage] MySQL no detectado (${mySQLErrorMsg}). Operando con almacenamiento local físico en:`);
-    console.log(`          - Datos: ${JSON_DB_FILE}`);
-    console.log(`          - Fotos/Croquis: ${UPLOADS_DIR}`);
-  }
-}
-
-// Helper: Guardar en MySQL
-async function insertOrUpdateMySQL(item: any) {
-  if (!mysqlPool) return;
-  const sql = `
-    INSERT INTO inspecciones (
-      id, folio_interno, categoria, tipo_tramite, fecha_inspeccion, hora_inspeccion, solicitante,
-      ubicacion_exacta, colonia, municipio, coordenadas, estado,
-      responsable_nombre, responsable_cargo, data_json
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON DUPLICATE KEY UPDATE
-      folio_interno = VALUES(folio_interno),
-      categoria = VALUES(categoria),
-      tipo_tramite = VALUES(tipo_tramite),
-      fecha_inspeccion = VALUES(fecha_inspeccion),
-      hora_inspeccion = VALUES(hora_inspeccion),
-      solicitante = VALUES(solicitante),
-      ubicacion_exacta = VALUES(ubicacion_exacta),
-      colonia = VALUES(colonia),
-      municipio = VALUES(municipio),
-      coordenadas = VALUES(coordenadas),
-      estado = VALUES(estado),
-      responsable_nombre = VALUES(responsable_nombre),
-      responsable_cargo = VALUES(responsable_cargo),
-      data_json = VALUES(data_json),
-      updated_at = CURRENT_TIMESTAMP;
-  `;
-
-  await mysqlPool.query(sql, [
-    item.id,
-    item.folioInterno || item.id,
-    item.categoria || item.seccion1?.categoria || 'MEJORA_VIAL',
-    item.tipoTramite || item.seccion1?.tipoTramite || '',
-    item.fechaInspeccion || item.seccion1?.fechaInspeccion || '',
-    item.horaInspeccion || item.seccion1?.horaInspeccion || '',
-    item.solicitante || item.seccion1?.solicitante || '',
-    item.ubicacionExacta || item.seccion1?.ubicacionExacta || '',
-    item.colonia || item.seccion1?.coloniaBarrio || '',
-    item.municipio || item.seccion1?.municipio || 'Campeche',
-    item.coordenadasGPS || (item.seccion1?.latitud ? `${item.seccion1?.latitud}, ${item.seccion1?.longitud}` : ''),
-    item.status || item.estado || 'Borrador',
-    item.responsable?.nombreCompleto || 'Pablo Ernesto Garrido Vera',
-    item.responsable?.cargo || 'Encargado Balizamiento y Semaforizacion',
-    JSON.stringify(item),
-  ]);
-}
-
-// Helper: Leer de JSON local
+// Helper: Leer expedientes del archivo físico inspecciones.json en el disco duro
 function readLocalJSON(): any[] {
   try {
     if (!fs.existsSync(JSON_DB_FILE)) return [];
     const content = fs.readFileSync(JSON_DB_FILE, 'utf-8');
     return JSON.parse(content || '[]');
-  } catch {
+  } catch (err) {
+    console.error('Error leyendo archivo local de datos:', err);
     return [];
   }
 }
 
-// Helper: Escribir a JSON local
+// Helper: Escribir físicamente en el archivo inspecciones.json en el disco duro
 function writeLocalJSON(data: any[]) {
   try {
     fs.writeFileSync(JSON_DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
   } catch (err) {
-    console.error('Error escribiendo a JSON local:', err);
+    console.error('Error escribiendo en archivo local de datos:', err);
   }
 }
 
-// ==========================================
-// RUTAS API
-// ==========================================
+// ==============================================================================
+// RUTAS API PARA ALMACENAMIENTO FÍSICO LOCAL
+// ==============================================================================
 
-// 1. Estado del Servidor y Base de Datos
-app.get('/api/status', async (_req, res) => {
-  // Reintentar conexión si no estaba conectado
-  if (!isMySQLConnected) {
-    await initMySQL();
-  }
-
+// 1. Estado del almacenamiento físico en disco
+app.get('/api/status', (_req, res) => {
   let totalFiles = 0;
   try {
     totalFiles = fs.readdirSync(UPLOADS_DIR).length;
@@ -224,14 +89,7 @@ app.get('/api/status', async (_req, res) => {
 
   res.json({
     status: 'online',
-    mysql: {
-      connected: isMySQLConnected,
-      host: dbConfig.host,
-      database: dbConfig.database,
-      user: dbConfig.user,
-      port: dbConfig.port,
-      error: mySQLErrorMsg || null,
-    },
+    mode: 'almacenamiento_fisico_local',
     localStorage: {
       uploadsDir: UPLOADS_DIR,
       dataDir: DATA_DIR,
@@ -249,7 +107,7 @@ app.get('/api/status', async (_req, res) => {
   });
 });
 
-// 2. Subida física de archivos / imágenes a la carpeta /uploads
+// 2. Subida física de archivos e imágenes a la carpeta local /uploads
 app.post('/api/upload', upload.single('file'), (req, res) => {
   try {
     if (!req.file) {
@@ -259,97 +117,63 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
     const publicUrl = `/uploads/${req.file.filename}`;
     res.json({
       success: true,
-      url: publicUrl,
       filename: req.file.filename,
-      size: req.file.size,
-      mimetype: req.file.mimetype,
       originalName: req.file.originalname,
+      url: publicUrl,
+      size: req.file.size,
     });
   } catch (error: any) {
     console.error('Error en /api/upload:', error);
-    res.status(500).json({ error: error?.message || 'Error guardando archivo' });
+    res.status(500).json({ error: error?.message || 'Error al guardar archivo en disco' });
   }
 });
 
-// 3. Subida directa de base64 a archivo físico local (croquis, firmas, etc.)
+// 3. Conversión de DataURL (canvas o firmas) a archivo físico JPG/PNG en /uploads
 app.post('/api/upload-base64', (req, res) => {
   try {
-    const { base64Data, filenamePrefix, extension = 'png' } = req.body;
-    if (!base64Data) {
+    const { base64Data, filenamePrefix = 'img' } = req.body;
+    if (!base64Data || typeof base64Data !== 'string') {
       return res.status(400).json({ error: 'Falta base64Data' });
     }
 
-    // Extraer datos base64 limpios
     const matches = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-    const dataString = matches ? matches[2] : base64Data;
-    const buffer = Buffer.from(dataString, 'base64');
+    if (!matches || matches.length !== 3) {
+      return res.status(400).json({ error: 'Formato base64 inválido' });
+    }
 
-    const prefix = filenamePrefix ? filenamePrefix.replace(/[^a-zA-Z0-9_-]/g, '') : 'img';
-    const filename = `${prefix}_${Date.now()}.${extension}`;
+    const mime = matches[1];
+    const dataBuffer = Buffer.from(matches[2], 'base64');
+    let ext = 'png';
+    if (mime.includes('jpeg') || mime.includes('jpg')) ext = 'jpg';
+    if (mime.includes('svg')) ext = 'svg';
+
+    const filename = `${Date.now()}-${filenamePrefix}.${ext}`;
     const filePath = path.join(UPLOADS_DIR, filename);
 
-    fs.writeFileSync(filePath, buffer);
+    fs.writeFileSync(filePath, dataBuffer);
 
     res.json({
       success: true,
       url: `/uploads/${filename}`,
       filename,
-      size: buffer.length,
+      size: dataBuffer.length,
     });
-  } catch (err: any) {
-    console.error('Error guardando base64 físico:', err);
-    res.status(500).json({ error: err.message || 'Error procesando imagen' });
+  } catch (error: any) {
+    console.error('Error en /api/upload-base64:', error);
+    res.status(500).json({ error: error?.message || 'Error guardando imagen en disco' });
   }
 });
 
-// 4. Descargar script schema.sql
-app.get('/api/schema.sql', (_req, res) => {
-  const schemaPath = path.resolve(process.cwd(), 'schema.sql');
-  if (fs.existsSync(schemaPath)) {
-    res.download(schemaPath, 'schema_anexo_tecnico_vial.sql');
-  } else {
-    res.status(404).send('Archivo schema.sql no encontrado');
-  }
-});
-
-// 5. Listar todas las inspecciones (MySQL o local JSON)
-app.get('/api/inspecciones', async (_req, res) => {
-  if (isMySQLConnected && mysqlPool) {
-    try {
-      const [rows]: any = await mysqlPool.query(
-        'SELECT data_json FROM inspecciones ORDER BY updated_at DESC'
-      );
-      const items = rows.map((r: any) => JSON.parse(r.data_json));
-      return res.json(items);
-    } catch (err) {
-      console.warn('Error leyendo de MySQL, usando respaldo local:', err);
-    }
-  }
-
-  // Fallback local JSON
+// 4. Listar todas las inspecciones desde el archivo físico local
+app.get('/api/inspecciones', (_req, res) => {
   const items = readLocalJSON();
   items.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
   res.json(items);
 });
 
-// 6. Obtener una inspección por ID
-app.get('/api/inspecciones/:id', async (req, res) => {
+// 5. Obtener una inspección por ID desde el archivo físico local
+app.get('/api/inspecciones/:id', (req, res) => {
   const { id } = req.params;
-
-  if (isMySQLConnected && mysqlPool) {
-    try {
-      const [rows]: any = await mysqlPool.query(
-        'SELECT data_json FROM inspecciones WHERE id = ? LIMIT 1',
-        [id]
-      );
-      if (rows && rows.length > 0) {
-        return res.json(JSON.parse(rows[0].data_json));
-      }
-    } catch (err) {
-      console.warn('Error leyendo id de MySQL:', err);
-    }
-  }
-
   const items = readLocalJSON();
   const found = items.find((i) => i.id === id);
   if (found) {
@@ -358,8 +182,8 @@ app.get('/api/inspecciones/:id', async (req, res) => {
   return res.status(404).json({ error: 'Inspección no encontrada' });
 });
 
-// 7. Guardar o actualizar inspección (guarda tanto en MySQL como en disco local)
-app.post('/api/inspecciones', async (req, res) => {
+// 6. Guardar o actualizar inspección físicamente en el disco
+app.post('/api/inspecciones', (req, res) => {
   try {
     const item = req.body;
     if (!item || !item.id) {
@@ -368,7 +192,6 @@ app.post('/api/inspecciones', async (req, res) => {
 
     item.updatedAt = new Date().toISOString();
 
-    // Guardar siempre en JSON local como respaldo de seguridad física inmediata
     const localItems = readLocalJSON();
     const idx = localItems.findIndex((i) => i.id === item.id);
     if (idx >= 0) {
@@ -378,52 +201,29 @@ app.post('/api/inspecciones', async (req, res) => {
     }
     writeLocalJSON(localItems);
 
-    // Si MySQL está conectado, guardar en MySQL
-    if (isMySQLConnected && mysqlPool) {
-      try {
-        await insertOrUpdateMySQL(item);
-      } catch (sqlErr: any) {
-        console.error('Error insertando en MySQL:', sqlErr);
-      }
-    }
-
     res.json({ success: true, item });
   } catch (error: any) {
     console.error('Error en POST /api/inspecciones:', error);
-    res.status(500).json({ error: error?.message || 'Error al guardar la inspección' });
+    res.status(500).json({ error: error?.message || 'Error al guardar la inspección en disco' });
   }
 });
 
-// 8. Eliminar inspección
-app.delete('/api/inspecciones/:id', async (req, res) => {
+// 7. Eliminar inspección del archivo físico local
+app.delete('/api/inspecciones/:id', (req, res) => {
   try {
     const { id } = req.params;
-
-    // Eliminar de JSON local
     const localItems = readLocalJSON().filter((i) => i.id !== id);
     writeLocalJSON(localItems);
-
-    // Eliminar de MySQL si aplica
-    if (isMySQLConnected && mysqlPool) {
-      try {
-        await mysqlPool.query('DELETE FROM inspecciones WHERE id = ?', [id]);
-      } catch (sqlErr) {
-        console.error('Error eliminando de MySQL:', sqlErr);
-      }
-    }
-
     res.json({ success: true });
   } catch (error: any) {
-    res.status(500).json({ error: error?.message || 'Error al eliminar' });
+    res.status(500).json({ error: error?.message || 'Error al eliminar inspección del disco' });
   }
 });
 
-// ==========================================
+// ==============================================================================
 // INTEGRACIÓN CON VITE DEV / DIST
-// ==========================================
+// ==============================================================================
 async function startServer() {
-  await initMySQL();
-
   const isProduction = process.env.NODE_ENV === 'production';
   const distPath = path.resolve(process.cwd(), 'dist');
 
@@ -445,10 +245,10 @@ async function startServer() {
   app.listen(PORT, HOST, () => {
     console.log(`================================================================`);
     console.log(` ANEXO TÉCNICO DE INSPECCIÓN Y LEVANTAMIENTO DE CAMPO`);
+    console.log(` MODO: Almacenamiento 100% físico en esta computadora (Sin base de datos externa)`);
     console.log(` Servidor local activo en: http://localhost:${PORT}`);
-    console.log(` Acceso en red local (LAN): http://0.0.0.0:${PORT}`);
     console.log(` Carpeta física de fotos/croquis: ${UPLOADS_DIR}`);
-    console.log(` Almacenamiento central de datos: ${isMySQLConnected ? 'MySQL Activo' : 'Disco Local (JSON)'}`);
+    console.log(` Archivo físico de datos: ${JSON_DB_FILE}`);
     console.log(`================================================================`);
   });
 }

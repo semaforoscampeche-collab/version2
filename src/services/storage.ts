@@ -1,21 +1,10 @@
 import { InspectionData } from '../types/inspection';
 import { SAMPLE_INSPECTION_DATA } from '../data/sampleInspection';
-import { db } from './firebase';
-import {
-  collection,
-  doc,
-  getDocs,
-  getDoc,
-  setDoc,
-  deleteDoc,
-  onSnapshot,
-} from 'firebase/firestore';
 
 const DB_NAME = 'AnexoTecnicoVialDB_v2';
 const DB_VERSION = 1;
 const STORE_NAME = 'inspecciones';
 const LS_FALLBACK_KEY = 'anexo_tecnico_inspecciones_backup_v2';
-const FIRESTORE_COLLECTION = 'inspecciones';
 
 export const OFFICIAL_INSTITUTIONAL_DATA = {
   dependencia: "GOBIERNO DEL ESTADO DE CAMPECHE",
@@ -30,14 +19,7 @@ export const OFFICIAL_INSTITUTIONAL_DATA = {
 
 export interface ServerStatus {
   status: string;
-  mysql: {
-    connected: boolean;
-    host: string;
-    database: string;
-    user: string;
-    port: number;
-    error: string | null;
-  };
+  mode: string;
   localStorage: {
     uploadsDir: string;
     dataDir: string;
@@ -48,22 +30,19 @@ export interface ServerStatus {
 }
 
 /**
- * Ensures that any loaded inspection has the official institutional information
- * and current officer defaults applied.
+ * Asegura los datos institucionales oficiales en cada expediente
  */
 export function enforceOfficialInstitutionalData(item: InspectionData): InspectionData {
   if (!item) return item;
   const inst = { ...(item.institutionalInfo || {}) };
   const resp = { ...(item.responsable || {}) };
 
-  // Always update institutional data to official government values
   inst.dependencia = inst.dependencia || OFFICIAL_INSTITUTIONAL_DATA.dependencia;
   inst.direccionUnidad = OFFICIAL_INSTITUTIONAL_DATA.direccionUnidad;
   inst.domicilio = OFFICIAL_INSTITUTIONAL_DATA.domicilio;
   inst.telefono = OFFICIAL_INSTITUTIONAL_DATA.telefono;
   inst.paginaWeb = OFFICIAL_INSTITUTIONAL_DATA.paginaWeb;
 
-  // Always update officer name, cargo and department if default or unset
   if (!resp.nombreCompleto || resp.nombreCompleto.includes('Carlos Alberto Morales') || resp.nombreCompleto === 'Pablo Ernesto Garrido Vera') {
     resp.nombreCompleto = OFFICIAL_INSTITUTIONAL_DATA.nombreCompleto;
   }
@@ -82,8 +61,7 @@ export function enforceOfficialInstitutionalData(item: InspectionData): Inspecti
 }
 
 /**
- * Sube una imagen directamente al servidor local físico (/uploads)
- * para que quede almacenada en el disco duro central de la computadora.
+ * Guarda una fotografía o archivo físicamente en la carpeta /uploads del disco duro de esta PC
  */
 export async function uploadPhysicalImage(file: File, prefix?: string): Promise<string> {
   try {
@@ -99,14 +77,13 @@ export async function uploadPhysicalImage(file: File, prefix?: string): Promise<
     if (res.ok) {
       const result = await res.json();
       if (result && result.url) {
-        return result.url; // Ruta física estática accesible en la red: /uploads/174000-archivo.jpg
+        return result.url; // Ruta física estática: /uploads/timestamp-nombre.jpg
       }
     }
   } catch (err) {
-    console.warn('[Upload] Servidor /api/upload no disponible en este momento, usando DataURL:', err);
+    console.warn('[Upload] Servidor /api/upload no disponible, usando lectura base64 local:', err);
   }
 
-  // Fallback a FileReader base64 si el backend no está disponible
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => resolve(e.target?.result as string);
@@ -116,7 +93,7 @@ export async function uploadPhysicalImage(file: File, prefix?: string): Promise<
 }
 
 /**
- * Convierte un DataURL (croquis generado en canvas, firma digital) a archivo físico en /uploads
+ * Guarda un DataURL (croquis de canvas o firma digital) como archivo físico en /uploads
  */
 export async function uploadPhysicalBase64(base64Data: string, filenamePrefix = 'img'): Promise<string> {
   if (!base64Data || !base64Data.startsWith('data:')) {
@@ -142,7 +119,7 @@ export async function uploadPhysicalBase64(base64Data: string, filenamePrefix = 
 }
 
 /**
- * Obtiene el estado actual de MySQL y almacenamiento en disco
+ * Consulta el estado del almacenamiento en disco de esta PC
  */
 export async function getServerStatus(): Promise<ServerStatus | null> {
   try {
@@ -178,67 +155,38 @@ function openLocalDB(): Promise<IDBDatabase> {
 
 export const StorageService = {
   /**
-   * Realtime listener to synchronize inspections across computers in network
+   * Carga y sincroniza las inspecciones físicamente desde el disco local
    */
   subscribe(onUpdate: (items: InspectionData[]) => void): () => void {
-    // 1. Cargar de inmediato desde la API local central
+    // Carga inicial
     this.getAll().then(onUpdate);
 
-    // 2. Intervalo de actualización periódica para sincronizar múltiples computadoras en la red LAN
+    // Revisión periódica en el archivo local de la PC
     const intervalId = window.setInterval(async () => {
       try {
         const res = await fetch('/api/inspecciones');
         if (res.ok) {
-          const remoteItems: InspectionData[] = await res.json();
-          if (Array.isArray(remoteItems) && remoteItems.length > 0) {
-            const clean = remoteItems.map(i => enforceOfficialInstitutionalData(i));
+          const items: InspectionData[] = await res.json();
+          if (Array.isArray(items)) {
+            const clean = items.map(i => enforceOfficialInstitutionalData(i));
             this.saveAllToLocal(clean);
             onUpdate(clean);
           }
         }
       } catch {
-        // Red local transitoria
+        // Modo sin conexión con el backend
       }
-    }, 5000);
-
-    // 3. Suscripción a Firestore como respaldo en la nube si está habilitado
-    let unsubscribeFirestore = () => {};
-    try {
-      const colRef = collection(db, FIRESTORE_COLLECTION);
-      unsubscribeFirestore = onSnapshot(
-        colRef,
-        (snapshot) => {
-          if (!snapshot.empty) {
-            const items: InspectionData[] = [];
-            snapshot.forEach((docSnap) => {
-              const raw = docSnap.data() as InspectionData;
-              items.push(enforceOfficialInstitutionalData(raw));
-            });
-            items.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
-            this.saveAllToLocal(items);
-            onUpdate(items);
-          }
-        },
-        () => {
-          // Ignorado
-        }
-      );
-    } catch {
-      // Ignorado si no hay conexión externa
-    }
+    }, 4000);
 
     return () => {
       clearInterval(intervalId);
-      unsubscribeFirestore();
     };
   },
 
   /**
-   * Obtiene todas las inspecciones: primero del Backend Central (MySQL / Disco local),
-   * y como respaldo de Firestore / IndexedDB
+   * Obtiene todas las inspecciones guardadas físicamente en el disco de la PC
    */
   async getAll(): Promise<InspectionData[]> {
-    // 1. Intentar Backend Central (MySQL / Servidor Express en red)
     try {
       const res = await fetch('/api/inspecciones');
       if (res.ok) {
@@ -249,39 +197,22 @@ export const StorageService = {
           this.saveAllToLocal(items);
           return items;
         } else if (Array.isArray(data) && data.length === 0) {
-          // Sembrar primera inspección institucional
+          // Si el archivo está vacío, registrar la primera inspección muestra institucional
           const seeded = enforceOfficialInstitutionalData(SAMPLE_INSPECTION_DATA);
           await this.save(seeded);
           return [seeded];
         }
       }
     } catch (apiErr) {
-      console.warn('[Storage] API Central local no disponible, intentando Firestore/Local:', apiErr);
+      console.warn('[Storage] Servidor local no disponible, leyendo almacenamiento del navegador:', apiErr);
     }
 
-    // 2. Intentar Firestore en la nube
-    try {
-      const colRef = collection(db, FIRESTORE_COLLECTION);
-      const snapshot = await getDocs(colRef);
-      if (!snapshot.empty) {
-        const items: InspectionData[] = [];
-        snapshot.forEach((d) => {
-          items.push(enforceOfficialInstitutionalData(d.data() as InspectionData));
-        });
-        items.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
-        this.saveAllToLocal(items);
-        return items;
-      }
-    } catch (fsErr) {
-      console.warn('[Storage] Error leyendo de Firestore, usando respaldo local:', fsErr);
-    }
-
-    // 3. Fallback a IndexedDB / LocalStorage
+    // Fallback a almacenamiento del navegador
     return this.getAllFromLocal();
   },
 
   /**
-   * Obtiene una inspección por ID
+   * Obtiene una inspección por ID del disco físico
    */
   async getById(id: string): Promise<InspectionData | null> {
     try {
@@ -294,22 +225,11 @@ export const StorageService = {
       // Ignorado
     }
 
-    try {
-      const docRef = doc(db, FIRESTORE_COLLECTION, id);
-      const snap = await getDoc(docRef);
-      if (snap.exists()) {
-        return enforceOfficialInstitutionalData(snap.data() as InspectionData);
-      }
-    } catch {
-      // Ignorado
-    }
-
     return this.getByIdFromLocal(id);
   },
 
   /**
-   * Guarda inspección en el backend central (MySQL y disco local),
-   * además de respaldar en IndexedDB y Firestore
+   * Guarda la inspección físicamente en el disco duro de la PC (data/inspecciones.json)
    */
   async save(data: InspectionData): Promise<void> {
     const updatedData: InspectionData = enforceOfficialInstitutionalData({
@@ -317,7 +237,7 @@ export const StorageService = {
       updatedAt: new Date().toISOString(),
     });
 
-    // 1. Guardar en Backend Central (MySQL + uploads físicos)
+    // 1. Guardar en el archivo físico en disco
     try {
       await fetch('/api/inspecciones', {
         method: 'POST',
@@ -325,45 +245,27 @@ export const StorageService = {
         body: JSON.stringify(updatedData),
       });
     } catch (err) {
-      console.warn('[Storage] Error guardando en servidor central:', err);
+      console.warn('[Storage] Error guardando en archivo físico local:', err);
     }
 
-    // 2. Guardar en Firestore si está conectado
-    try {
-      const docRef = doc(db, FIRESTORE_COLLECTION, updatedData.id);
-      await setDoc(docRef, updatedData);
-    } catch (err) {
-      console.warn('[Storage] Fallback Firestore:', err);
-    }
-
-    // 3. Guardar en copia local del navegador (IndexedDB)
+    // 2. Guardar también en el almacenamiento local de este navegador como copia de respaldo
     await this.saveToLocal(updatedData);
   },
 
   /**
-   * Elimina inspección de la base de datos central y cachés
+   * Elimina la inspección del archivo físico en disco
    */
   async delete(id: string): Promise<void> {
-    // 1. Eliminar de backend central
     try {
       await fetch(`/api/inspecciones/${id}`, { method: 'DELETE' });
     } catch (err) {
-      console.warn('[Storage] Error eliminando en servidor central:', err);
+      console.warn('[Storage] Error eliminando archivo local:', err);
     }
 
-    // 2. Eliminar de Firestore
-    try {
-      const docRef = doc(db, FIRESTORE_COLLECTION, id);
-      await deleteDoc(docRef);
-    } catch {
-      // Ignorado
-    }
-
-    // 3. Eliminar de IndexedDB local
     await this.deleteFromLocal(id);
   },
 
-  // --- LOCAL FALLBACK ENGINE (IndexedDB + localStorage) ---
+  // --- MOTOR LOCAL DEL NAVEGADOR (IndexedDB + localStorage de la PC) ---
   async getAllFromLocal(): Promise<InspectionData[]> {
     try {
       const idb = await openLocalDB();
@@ -426,7 +328,7 @@ export const StorageService = {
       const store = tx.objectStore(STORE_NAME);
       items.forEach(item => store.put(item));
     } catch {
-      // Ignorado si falla indexeddb
+      // Ignorado
     }
   },
 

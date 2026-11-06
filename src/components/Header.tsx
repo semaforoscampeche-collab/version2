@@ -10,7 +10,7 @@ import {
   Clock,
   Shield,
   FileCheck,
-  Database
+  HardDrive
 } from 'lucide-react';
 
 interface Props {
@@ -58,10 +58,10 @@ export const Header: React.FC<Props> = ({
               type="button"
               onClick={onOpenDatabaseModal}
               className="flex items-center gap-1.5 text-amber-200 cursor-pointer bg-black/25 hover:bg-black/40 px-2 py-0.5 rounded text-[10px] font-semibold border border-amber-300/30 transition-colors"
-              title="Ver estado de base de datos MySQL y almacenamiento local"
+              title="Ver carpetas de almacenamiento local físico en esta PC"
             >
-              <Database className="w-3 h-3 text-amber-300" />
-              <span>Base de Datos / Red</span>
+              <HardDrive className="w-3 h-3 text-amber-300" />
+              <span>Almacenamiento Local (PC)</span>
             </button>
           )}
         </div>
